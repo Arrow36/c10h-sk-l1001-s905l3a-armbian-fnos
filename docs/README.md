@@ -11,7 +11,7 @@
 | [启动与回退](boot.md) | 外置引导、脚本生成、eMMC 边界和恢复证据 |
 | [镜像来源](provenance.md) | 两套测试镜像版本及历史校验值 |
 | [有线网络](network.md) | Windows ICS、静态地址、DHCP 与文件权限问题 |
-| [Wi-Fi](wifi.md) | PCIe W2 识别及失败实验的范围 |
+| [Wi-Fi](wifi.md) | S905L3A 原生 PCIe 主控驱动 (`c10h_pcie`)、Amlogic W2 (`1f35:0642`) ARM64 修复及 fnOS 实测记录 |
 | [验证计划](validation.md) | 复现结果所需记录及下一步验收项目 |
 
 ## 显示专题

@@ -1,0 +1,66 @@
+# fnOS C10H 板载 Amlogic W2 PCIe Wi-Fi 实机取证摘录 (2026-11-07)
+
+环境：Linux c10h 6.12.41-trim #219 SMP PREEMPT aarch64
+模块：c10h_pcie.ko + w2_comm.ko (bus_type=pci) + w2.ko (w2-aml-2.3.4-r3.7.2_2026-07.25-w2, ARM64 Device-nGnRE 对齐修复版)
+
+=== 1. c10h_pcie 冷启动链路建立与 PCI 枚举 (dmesg) ===
+[  287.911292] c10h_pcie: link up achieved (STATUS12=0x00014470 GEN2)
+[  287.912978] c10h-pcie fc000000.pcie: c10h_pcie_probe starting
+[  287.913080] c10h-pcie fc000000.pcie: host bridge /soc/pcie@fc000000 ranges:
+[  287.913127] c10h-pcie fc000000.pcie:       IO 0x00fc600000..0x00fc6fffff -> 0x0000000000
+[  287.913158] c10h-pcie fc000000.pcie:      MEM 0x00fc700000..0x00fdffffff -> 0x00fc700000
+[  287.913434] c10h-pcie fc000000.pcie: iATU: unroll T, 4 ob, 4 ib, align 64K, limit 4G
+[  287.913493] c10h-pcie fc000000.pcie: PCIe Gen.2 x1 link up
+[  287.913824] c10h-pcie fc000000.pcie: PCI host bridge to bus 0000:00
+[  287.913907] pci 0000:00:00.0: [16c3:abcd] type 01 class 0x060400 PCIe Root Port
+[  287.919776] pci 0000:01:00.0: [1f35:0642] type 00 class 0x078000 PCIe Endpoint
+[  287.927556] pci 0000:01:00.0: BAR 2 [mem 0xfc800000-0xfc9fffff 64bit pref]: assigned
+[  287.927601] pci 0000:01:00.0: BAR 4 [mem 0xfca00000-0xfcbfffff 64bit pref]: assigned
+[  287.927697] pci 0000:01:00.0: BAR 0 [mem 0xfdc00000-0xfdc03fff 64bit pref]: assigned
+[  287.927984] c10h-pcie fc000000.pcie: c10h_pcie_probe succeeded!
+
+=== 2. lspci -nn -vv ===
+00:00.0 PCI bridge [0604]: Synopsys, Inc. DWC_usb3 / PCIe bridge [16c3:abcd] (rev 01) (prog-if 00 [Normal decode])
+	Control: I/O+ Mem+ BusMaster+ SpecCycle- MemWINV- VGASnoop- ParErr- Stepping- SERR+ FastB2B- DisINTx-
+	Bus: primary=00, secondary=01, subordinate=ff, sec-latency=0
+	Prefetchable memory behind bridge: fc800000-fddfffff [size=22M] [32-bit]
+
+01:00.0 Communication controller [0780]: Device [1f35:0642] (rev 02)
+	Subsystem: PLDA Device [1556:1111]
+	Region 0: Memory at fdc00000 (64-bit, prefetchable) [size=16K]
+	Region 2: Memory at fc800000 (64-bit, prefetchable) [size=2M]
+	Region 4: Memory at fca00000 (64-bit, prefetchable) [size=2M]
+
+=== 3. w2_comm / w2 固件握手与扫描确认 (dmesg) ===
+[  376.402839] [W2][     PCI] [aml_pci_probe 118] pcie vendor id 1f35
+[  376.402875] w2_comm 0000:01:00.0: enabling device (0000 -> 0002)
+[  376.402896] [W2][     PCI] ep_bar2_addr: 0xfc800000, ep_bar4_addr:0xfca00000
+[  376.403141] [W2][     PCI]  pcie link speed is PCI_EXP_LNKSTA_CLS_5_0GB
+[  376.403152] [W2][     PCI] [aml_pci_probe 124]device id 0x642
+[  377.567494] [W2][    MAIN] [aml_open 1130]vif_idx=3, type=2, name=wlan0 sta_mode=1
+[  377.806450] [W2][    MAIN] [aml_cfg80211_scan 2069]n_channels:39,iftype:2
+[  381.018168] [W2][  MSG_RX] [aml_rx_scanu_start_cfm 673]aml_rx_scanu_start_cfm, cur_chan:0, rx beacon and probe rsp count:70
+
+=== 4. ip link & nmcli dev status ===
+4: wlan0: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc mq state DOWN mode DORMANT group default qlen 1000
+    link/ether xx:xx:xx:xx:fe:cd brd ff:ff:ff:ff:ff:ff
+    altname wlp1s0
+5: p2p0: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc mq state DOWN mode DORMANT group default qlen 1000
+    link/ether xx:xx:xx:xx:fe:cd brd ff:ff:ff:ff:ff:ff
+6: ap0: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc mq state DOWN mode DORMANT group default qlen 1000
+    link/ether xx:xx:xx:xx:fe:cd brd ff:ff:ff:ff:ff:ff
+
+DEVICE         TYPE      STATE                   CONNECTION 
+eth0           ethernet  connected               eth0       
+lo             loopback  connected (externally)  lo         
+docker0        bridge    connected (externally)  docker0    
+ap0            wifi      disconnected            --         
+p2p0           wifi      disconnected            --         
+wlan0          wifi      disconnected            --         
+
+=== 5. nmcli dev wifi list (2.4GHz + 5GHz 扫描脱敏节选) ===
+IN-USE  BSSID              SSID                              MODE   CHAN  RATE        SIGNAL  BARS  SECURITY  
+        XX:XX:XX:XX:XX:01  Test-WiFi-2.4G                    Infra  13    540 Mbit/s  100     ▂▄▆█  WPA2 WPA3 
+        XX:XX:XX:XX:XX:02  Test-WiFi-5G                      Infra  48    540 Mbit/s  100     ▂▄▆█  WPA2 WPA3 
+        XX:XX:XX:XX:XX:03  AP_2.4G_Demo                      Infra  3     135 Mbit/s  84      ▂▄▆█  WPA1 WPA2 
+        XX:XX:XX:XX:XX:04  AP_5G_Demo                        Infra  40    540 Mbit/s  50      ▂▄__  WPA2       

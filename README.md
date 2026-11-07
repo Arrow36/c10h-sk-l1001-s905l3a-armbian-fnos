@@ -16,6 +16,7 @@ Linux 中出现的 `SKYWORTH E900V22C` 来自借用的设备树，不是实物�
 - **fnOS 外置启动与内屏点亮**：`6.12.41-trim #219` 环境中，DSI 主机/面板绑定，禁用 HDMI 后内屏独占当前 CRTC。早期画面存在分区、重复与偏色，见 [完整实验及终端输出](docs/research/fnos-lcd-full-record-2026-11-04.md)。
 - **fnOS 普通画面恢复正常**：11 月 6 日记录及设备使用者后续确认，VPU/DSI 寄存器调整后画面完整、颜色正常、无可见折叠或抖动，并实现 1280×800 横屏控制台。见 [修复记录](docs/research/fnos-display-resolution-record-2026-11-06.md)。这是指定设备与配置的实际成果；不等于量化色彩准确度或长期可靠性认证。
 - **自动修复方案已有实现与部署记录**：提供独立 MMIO 工具、systemd 单元，以及后续加入面板驱动的写入路径。见 [实现导航](#技术实现与源码导航)与 [证据评价](evidence/README.md)。已采集当前模块/文件指纹及本次启动日志；精确源码构建对应、两条修复路径的独立贡献和跨重启成功率仍待验证。
+- **fnOS 板载 Amlogic W2 PCIe Wi-Fi (`1f35:0642`) 枚举与双频扫描验证**：通过独立 PCIe 控制器初始化驱动 [`c10h_pcie.c`](drivers/c10h-wifi/c10h_pcie.c) 与 ARM64 对齐修复补丁 [`w2-arm64-6.12-fixes.patch`](drivers/c10h-wifi/w2-arm64-6.12-fixes.patch)，在 `6.12.41-trim #219` 下实测完成冷启动 PCIe Gen2 x1 握手、固件握手、`wlan0` / `p2p0` / `ap0` 接口注册及 2.4GHz / 5GHz 双频热点扫描。见 [Wi-Fi 适配记录](docs/wifi.md)与 [实机取证摘录](evidence/fnos-wifi-bringup-2026-11-07.txt)。长期关联吞吐与 Armbian 侧适配仍待验证。
 
 ## Armbian / fnOS 独立状态
 
@@ -34,7 +35,8 @@ Linux 中出现的 `SKYWORTH E900V22C` 来自借用的设备树，不是实物�
 | 色彩、折叠与抖动 | 内屏尚未测试 | 实测颜色正常、无可见折叠或抖动 |
 | 开机修复 | 源码/服务可供适配，未作内屏实测 | 显示修复服务保持运行；控制台由 `fbcon=rotate:3` 旋转，旧旋转服务已移除 |
 | SD / eMMC 安装 | 未验证；内屏 overlay 禁用借用的 SD 节点 | 未验证；实验记录禁用 SD/eMMC |
-| 触摸、Wi-Fi、音频、蓝牙、摄像头、GPU 加速 | 均未完成实际功能验收 | 均未完成实际功能验收 |
+| 板载 Wi-Fi (`1f35:0642`) | 未验证 | **已枚举并完成 2.4G/5G 扫描**（`wlan0`/`p2p0`/`ap0`）；长期连接吞吐待测 |
+| 触摸、音频、蓝牙、摄像头、GPU 加速 | 均未完成实际功能验收 | 均未完成实际功能验收 |
 
 早期资料将部分显示实验归于 Armbian，与设备使用者后续明确确认冲突；保留原始材料，当前不据此宣称 Armbian 内屏已测。见 [冲突说明](docs/audit.md#材料冲突与处理)。
 
@@ -49,6 +51,7 @@ Linux 中出现的 `SKYWORTH E900V22C` 来自借用的设备树，不是实物�
 | 2026-11-04（研究记录日期） | fnOS 内屏点亮；禁用 HDMI 后自动取得 CRTC，普通画面仍分区/重复 | [fnOS 完整记录](docs/research/fnos-lcd-full-record-2026-11-04.md) |
 | 2026-11-04（研究记录日期） | 浏览器 framebuffer 滑杆、通道补偿、全白图和状态采样用于分离颜色与空间故障，尚未完成系统修复 | [滑杆方法](docs/research/browser-slider-method-2026-11-04.md) · [详细纪要](docs/research/fnos-lcd-experiment-log-2026-11-04.md) |
 | 2026-11-06（修复记录日期） | fnOS 寄存器调整后显示正常；形成 MMIO 工具、横屏和自启方案，驱动随后加入直接写入实现 | [修复记录](docs/research/fnos-display-resolution-record-2026-11-06.md) · [源码演变与验证边界](docs/audit.md#提交历史与日期口径) |
+| 2026-11-07（实测记录日期） | fnOS 下完成 S905L3A 原生 PCIe 控制器独立驱动与 Amlogic W2 ARM64 对齐修复，`wlan0` 双频扫描成功 | [Wi-Fi 记录](docs/wifi.md) · [取证摘录](evidence/fnos-wifi-bringup-2026-11-07.txt) |
 
 ## 启动、构建与研究文档
 
@@ -69,6 +72,7 @@ Linux 中出现的 `SKYWORTH E900V22C` 来自借用的设备树，不是实物�
 | [eMMC DTB 工具](tools/disable_emmc.py) · [dts/](dts/) | 基线 eMMC 节点修改、面板/PWM/DSI overlay；Wi-Fi overlay 是失败/未验证实验 |
 | [面板驱动](drivers/c10h-display/panel-c10h-jd9366tc.c) · [初始化表](drivers/c10h-display/c10h-panel-init.h) | JD9366TC 上电、DCS 初始化、800×1280 模式，以及 `prepare()` 中的固定地址 MMIO 写入 |
 | [DSI 主机](drivers/c10h-display/c10h-dsi-host.c) · [驱动目录](drivers/c10h-display/) | 基于 Meson 驱动的实验适配，按实际位时钟配置 PHY，配置 HS/VS 极性 |
+| [PCIe 主控驱动](drivers/c10h-wifi/c10h_pcie.c) · [W2 补丁](drivers/c10h-wifi/w2-arm64-6.12-fixes.patch) · [Wi-Fi 服务](systemd/c10h-wifi-power.service) | S905L3A PCIe Gen2 硬件时序初始化、Amlogic W2 ARM64 `Device-nGnRE` 对齐修复与模块加载脚本 |
 | [MMIO 工具](tools/c10h-display-fix.c) · [修复服务](systemd/c10h-display-fix.service) · [旋转服务](systemd/c10h-fbcon-rotate.service) | 用户态寄存器写入与开机单元；有实现不代表当前设备已运行该版本 |
 | [显示探针](experiments/display/) · [取证脚本](scripts/) | DRM 几何图、Canvas/寄存器快照、硬件彩条与启动记录；部分工具会写硬件或切换图层 |
 

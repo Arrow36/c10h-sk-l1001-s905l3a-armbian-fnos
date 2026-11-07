@@ -1,0 +1,12 @@
+[Unit]
+Description=C10H WLAN Power Sequencing and Driver Loader
+After=c10h-display-fix.service network.target NetworkManager.service
+TimeoutStartSec=30
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/c10h-wifi-power
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

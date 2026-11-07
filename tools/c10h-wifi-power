@@ -1,0 +1,12 @@
+#!/bin/bash
+echo "[c10h-wifi] Starting W2 PCIe WiFi setup..."
+echo "[c10h-wifi] Loading c10h_pcie..."
+timeout 15 modprobe c10h_pcie 2>/dev/null || true
+sleep 1
+echo "[c10h-wifi] Loading w2_comm (bus_type=pci)..."
+timeout 15 modprobe w2_comm bus_type=pci 2>/dev/null || true
+sleep 1
+echo "[c10h-wifi] Loading w2..."
+timeout 15 modprobe w2 2>/dev/null || true
+echo "[c10h-wifi] W2 WiFi initialization complete."
+exit 0

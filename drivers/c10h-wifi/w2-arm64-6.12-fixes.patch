@@ -1,0 +1,40 @@
+--- a/aml_drv/aml_utils.c
++++ b/aml_drv/aml_utils.c
+@@ -1509,7 +1509,7 @@ u8 aml_msgind(void *pthis, void *hostid)
+         /* Read the message structure */
+         len = sizeof(struct ipc_e2a_msg);
+-        memcpy(&msg_pc, (void *)&(aml_hw->ipc_env->shared->msg_e2a_buf), len);
++        memcpy_fromio(&msg_pc, (void __iomem *)&(aml_hw->ipc_env->shared->msg_e2a_buf), len);
+ 
+         //indicate that host has read mem
+         AML_REG_WRITE(0, aml_hw->plat, AML_ADDR_MAC_PHY, UBUNTU_SYNC_ADDR);
+--- a/aml_drv/aml_platform.c
++++ b/aml_drv/aml_platform.c
+@@ -723,7 +723,8 @@ int aml_Check_fw_is_compressible(struct aml_hw *aml_hw)
+     int comp_flag = 0;
+     struct ipc_shared_rx_buf *shared_ram = (struct ipc_shared_rx_buf *)aml_hw->ipc_env->shared;
+-    struct compact_info_tag *comp_info = (struct compact_info_tag *)&(aml_hw->ipc_env->shared->comp_info);
++    struct compact_info_tag comp_info_val;
++    struct compact_info_tag *comp_info = &comp_info_val;
++    memcpy_fromio(&comp_info_val, (void __iomem *)&(aml_hw->ipc_env->shared->comp_info), sizeof(comp_info_val));
+ 
+     return 0;
+--- a/aml_drv/ipc_host.c
++++ b/aml_drv/ipc_host.c
+@@ -435,7 +435,7 @@ void ipc_host_init(struct ipc_host_env_tag *env,
+ #ifdef CONFIG_AML_USE_STATIC_BUF
+     memset(shared_host_rxbuf, 0, sizeof(shared_host_rxbuf));
+     memset(shared_host_rxdesc, 0, sizeof(shared_host_rxdesc));
+-    memset(env->shared, 0, sizeof(struct ipc_shared_env_tag));
++    memset_io((void __iomem *)env->shared, 0, sizeof(struct ipc_shared_env_tag));
+ #else
+     // Reset the IPC Shared memory
+--- a/aml_drv/aml_fw_trace.c
++++ b/aml_drv/aml_fw_trace.c
+@@ -160,6 +160,7 @@ int aml_fw_trace_buf_init(struct aml_fw_trace_buf *shared_buf,
+                           struct aml_fw_trace_ipc_desc *ipc)
+ {
++    return -ENOENT;
+     uint16_t lock_status = ipc->pattern;
+ 
+     if ((lock_status != AML_FW_TRACE_LOCKED &&
