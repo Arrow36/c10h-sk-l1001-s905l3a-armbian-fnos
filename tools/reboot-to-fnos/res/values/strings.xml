@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">重启到飞牛 fnOS</string>
+    <string name="btn_reboot">重启到飞牛 (fnOS / Linux)</string>
+    <string name="tip_text">点击下方按钮将触发从 U盘/TF卡 引导启动\n设备将重启进入 飞牛 fnOS</string>
+</resources>

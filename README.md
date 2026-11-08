@@ -75,6 +75,7 @@ Linux 中出现的 `SKYWORTH E900V22C` 来自借用的设备树，不是实物�
 | [PCIe 主控驱动](drivers/c10h-wifi/c10h_pcie.c) · [W2 补丁](drivers/c10h-wifi/w2-arm64-6.12-fixes.patch) · [Wi-Fi 服务](systemd/c10h-wifi-power.service) | S905L3A PCIe Gen2 硬件时序初始化、Amlogic W2 ARM64 `Device-nGnRE` 对齐修复与模块加载脚本 |
 | [MMIO 工具](tools/c10h-display-fix.c) · [修复服务](systemd/c10h-display-fix.service) · [旋转服务](systemd/c10h-fbcon-rotate.service) | 用户态寄存器写入与开机单元；有实现不代表当前设备已运行该版本 |
 | [显示探针](experiments/display/) · [取证脚本](scripts/) | DRM 几何图、Canvas/寄存器快照、硬件彩条与启动记录；部分工具会写硬件或切换图层 |
+| [安卓重启工具](tools/reboot-to-fnos/) | 安卓端一键重启到飞牛/Linux 应用及源码，通过 telecom_shell root 机制与 sys.powerctl 触发引导 |
 
 寄存器值与命名核对集中于 [显示配置表](docs/display.md#寄存器配置与命名核对)。特别是 `0x1DF5` 在仓库头文件中定义为 `VPP_OSD1_BLD_H_SCOPE`，不能直接解释为“1919 深度输出 FIFO”。
 

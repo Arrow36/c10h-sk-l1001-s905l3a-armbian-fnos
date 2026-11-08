@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="32dp"
+    android:background="#121418">
+
+    <TextView
+        android:id="@+id/title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/app_name"
+        android:textColor="#FFFFFF"
+        android:textSize="32sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="16dp" />
+
+    <TextView
+        android:id="@+id/tip"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/tip_text"
+        android:textColor="#A0A5B0"
+        android:textSize="18sp"
+        android:gravity="center"
+        android:layout_marginBottom="36dp" />
+
+    <Button
+        android:id="@+id/btnReboot"
+        android:layout_width="380dp"
+        android:layout_height="64dp"
+        android:text="@string/btn_reboot"
+        android:textColor="#FFFFFF"
+        android:textSize="20sp"
+        android:background="#1976D2"
+        android:focusable="true" />
+
+    <TextView
+        android:id="@+id/tvStatus"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:textColor="#4CAF50"
+        android:textSize="16sp"
+        android:gravity="center"
+        android:layout_marginTop="20dp" />
+</LinearLayout>
