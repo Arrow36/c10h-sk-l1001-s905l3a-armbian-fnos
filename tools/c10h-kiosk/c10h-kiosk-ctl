@@ -1,0 +1,91 @@
+#!/bin/bash
+# ==============================================================================
+# C10H Smart Screen Kiosk Control Utility
+# Manage display, brightness, and dashboard URL
+# ==============================================================================
+
+ENV_FILE="/etc/c10h-kiosk.env"
+BL_PATH="/sys/class/backlight/backlight-c10h/brightness"
+
+usage() {
+    echo "Usage: c10h-kiosk-ctl <command> [args]"
+    echo ""
+    echo "Commands:"
+    echo "  status               Show current kiosk service and display status"
+    echo "  url [new_url]        Get or set the dashboard URL (default: http://127.0.0.1:5666)"
+    echo "  brightness [0-7]     Get or set screen brightness (0 to 7)"
+    echo "  start                Start the kiosk dashboard"
+    echo "  stop                 Stop the kiosk dashboard"
+    echo "  restart              Restart and refresh the display"
+    echo "  enable               Enable kiosk on system boot"
+    echo "  disable              Disable kiosk on system boot"
+    echo ""
+    exit 1
+}
+
+case "$1" in
+    status)
+        echo "=== Kiosk Service Status ==="
+        systemctl status c10h-kiosk.service --no-pager | head -n 12
+        echo ""
+        echo "=== Current Configuration ==="
+        cat "$ENV_FILE" 2>/dev/null
+        echo ""
+        if [ -f "$BL_PATH" ]; then
+            echo "Current Brightness: $(cat $BL_PATH) / $(cat /sys/class/backlight/backlight-c10h/max_brightness)"
+        fi
+        ;;
+    url)
+        if [ -z "$2" ]; then
+            grep "KIOSK_URL=" "$ENV_FILE" 2>/dev/null || echo "http://127.0.0.1:5666"
+        else
+            echo "Setting KIOSK_URL to: $2"
+            if grep -q "KIOSK_URL=" "$ENV_FILE" 2>/dev/null; then
+                sed -i "s|KIOSK_URL=.*|KIOSK_URL=\"$2\"|g" "$ENV_FILE"
+            else
+                echo "KIOSK_URL=\"$2\"" >> "$ENV_FILE"
+            fi
+            systemctl restart c10h-kiosk.service
+            echo "Applied and refreshed."
+        fi
+        ;;
+    brightness)
+        if [ -z "$2" ]; then
+            if [ -f "$BL_PATH" ]; then
+                echo "Current Brightness: $(cat $BL_PATH)"
+            fi
+        else
+            val="$2"
+            if [[ "$val" =~ ^[0-7]$ ]]; then
+                echo "$val" > "$BL_PATH" 2>/dev/null || echo 123456 | sudo -S sh -c "echo $val > $BL_PATH"
+                echo "Brightness set to $val."
+            else
+                echo "Error: Brightness must be between 0 and 7."
+                exit 1
+            fi
+        fi
+        ;;
+    start)
+        echo 123456 | sudo -S systemctl start c10h-kiosk.service
+        echo "Kiosk started."
+        ;;
+    stop)
+        echo 123456 | sudo -S systemctl stop c10h-kiosk.service
+        echo "Kiosk stopped."
+        ;;
+    restart)
+        echo 123456 | sudo -S systemctl restart c10h-kiosk.service
+        echo "Kiosk restarted."
+        ;;
+    enable)
+        echo 123456 | sudo -S systemctl enable c10h-kiosk.service
+        echo "Kiosk auto-start enabled."
+        ;;
+    disable)
+        echo 123456 | sudo -S systemctl disable c10h-kiosk.service
+        echo "Kiosk auto-start disabled."
+        ;;
+    *)
+        usage
+        ;;
+esac

@@ -1,0 +1,14 @@
+[Unit]
+Description=C10H Smart Screen Wayland Kiosk Dashboard
+After=seatd.service c10h-display-fix.service network.target
+Wants=seatd.service
+
+[Service]
+Type=simple
+User=root
+ExecStart=/bin/su - arrow -s /bin/bash /usr/local/bin/c10h-kiosk-start.sh
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
