@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "C10H Touch & Kiosk Suite",
+  "version": "1.3.0",
+  "description": "Virtual touch keyboard with Xiaohe Shuangpin, browser navigation bar, and kinetic touch scrolling for C10H Kiosk.",
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["config.js", "pinyin_dict.js", "keyboard.js"],
+      "css": ["keyboard.css"],
+      "run_at": "document_end"
+    }
+  ]
+}

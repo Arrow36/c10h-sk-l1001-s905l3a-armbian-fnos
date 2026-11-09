@@ -1,0 +1,16 @@
+[Unit]
+Description=C10H Jadard JD9366TC Touchscreen Daemon
+After=systemd-modules-load.service
+Before=c10h-kiosk.service
+
+[Service]
+Type=simple
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/local/bin/c10h-touch-daemon.py
+Restart=always
+RestartSec=2
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

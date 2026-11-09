@@ -15,8 +15,8 @@
 | MIPI DSI / 背光 | **尚未测试** | 已点亮；实测普通画面完整、颜色正常，无可见折叠/抖动 | [11 月 6 日记录](research/fnos-display-resolution-record-2026-11-06.md)；旧记录的 Armbian 归属冲突见 [审计](audit.md#材料冲突与处理) |
 | 显示方向 | 内屏尚未测试 | 原生 800×1280，横屏终端 1280×800 | fbcon 旋转不改变 DRM 物理模式，也不旋转所有 framebuffer 应用 |
 | 自动修复 | 有共享源码/服务；内屏未测 | 有 live 模块/文件哈希与本次服务日志；旧旋转服务已移除，保留启动参数旋转 | 不由 `RemainAfterExit=yes` 推定显示或跨重启可靠性 |
-| 触摸 | 未完成实际芯片确认及功能测试 | 未完成实际芯片确认及功能测试 | 历史 input 列表未枚举；原厂 DT 候选不等于实物识别 |
-| GPU | 历史资料称 Panfrost/render 节点注册，缺独立原始输出；加速待测 | 附录有 Panfrost 初始化与 render 节点记录；加速待测 | 驱动注册不等于渲染/视频解码验证 |
+| 触摸 | 待移植驱动 | **已全面点亮并验收**：Jadard JD9366TC TDDI (In-Cell) 芯片，走 `/dev/i2c-0` (0x68)；1:1 硬件像素校准（`Screen_X = 1279 - raw_y`, `Screen_Y = raw_x`）彻底消除边缘偏离；140Hz 极速轮询与 uinput 绝对指针 | [触控驱动记录](touchscreen.md)；亚毫米级精准定位，支持滑动与拖拽 |
+| GPU / Kiosk 仪表盘 | 待测试 | **已验证硬件加速与 Kiosk 副屏套件**：Panfrost Mali-G31；Wayland Cage + Chromium 原生硬件加速；CSS 规避 backdrop-filter 消除 GPU 瓶颈达到 60 FPS；集成双模输入法、手势拖拽滑动与浏览器导航栏 | [Kiosk 记录](kiosk.md)；内存占用 ~220MB，各项功能支持自由启停 |
 | Wi-Fi | 未验证 | **已验证 PCIe Gen2 枚举、`w2_comm`/`w2` 加载、`wlan0` 注册及 2.4G/5G 扫描**；长期连接吞吐待测 | [Wi-Fi 记录](wifi.md) · [取证摘录](../evidence/fnos-wifi-bringup-2026-11-07.txt)；板载芯片为 Amlogic W2 (`1f35:0642`)，走原生 PCIe 而非借用 DTB 的 SDIO |
 | 音频 | 历史汇总含声卡注册及 DAI 错误；缺可归属的完整日志 | 未找到独立扬声器/麦克风验收 | 两套系统均不能标为音频可用 |
 | 蓝牙 / 摄像头 | 待识别与测试 | 待识别与测试 | 无成功功能证据 |

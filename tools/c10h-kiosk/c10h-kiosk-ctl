@@ -1,26 +1,54 @@
 #!/bin/bash
 # ==============================================================================
 # C10H Smart Screen Kiosk Control Utility
-# Manage display, brightness, and dashboard URL
+# Manage display, brightness, dashboard URL, and interactive suite options
 # ==============================================================================
 
 ENV_FILE="/etc/c10h-kiosk.env"
 BL_PATH="/sys/class/backlight/backlight-c10h/brightness"
 
+as_root() {
+    if [ "$(id -u)" -eq 0 ]; then
+        "$@"
+    else
+        echo 123456 | sudo -S "$@"
+    fi
+}
+
 usage() {
     echo "Usage: c10h-kiosk-ctl <command> [args]"
     echo ""
-    echo "Commands:"
-    echo "  status               Show current kiosk service and display status"
-    echo "  url [new_url]        Get or set the dashboard URL (default: http://127.0.0.1:5666)"
-    echo "  brightness [0-7]     Get or set screen brightness (0 to 7)"
-    echo "  start                Start the kiosk dashboard"
-    echo "  stop                 Stop the kiosk dashboard"
-    echo "  restart              Restart and refresh the display"
-    echo "  enable               Enable kiosk on system boot"
-    echo "  disable              Disable kiosk on system boot"
+    echo "Display & Navigation Commands:"
+    echo "  status                   Show current kiosk service, display, and feature status"
+    echo "  url [new_url]            Get or set the dashboard URL (e.g. http://127.0.0.1:5666)"
+    echo "  brightness [0-7]         Get or set screen brightness (0 to 7)"
+    echo ""
+    echo "Feature Configuration Commands:"
+    echo "  keyboard [on|off]        Enable or disable virtual touch keyboard"
+    echo "  nav [on|off]             Enable or disable top browser navigation bar"
+    echo "  scroll [on|off]          Enable or disable kinetic touch drag-to-scroll"
+    echo "  input-mode [xiaohe|quanpin] Set default Chinese input mode"
+    echo ""
+    echo "Service Management Commands:"
+    echo "  start                    Start the kiosk dashboard"
+    echo "  stop                     Stop the kiosk dashboard"
+    echo "  restart                  Restart and refresh the display"
+    echo "  enable                   Enable kiosk on system boot"
+    echo "  disable                  Disable kiosk on system boot"
     echo ""
     exit 1
+}
+
+set_env_var() {
+    local key="$1"
+    local val="$2"
+    if [ ! -f "$ENV_FILE" ]; then
+        as_root sh -c "echo '${key}=\"${val}\"' > '$ENV_FILE'"
+    elif grep -q "^${key}=" "$ENV_FILE" 2>/dev/null; then
+        as_root sed -i "s|^${key}=.*|${key}=\"${val}\"|g" "$ENV_FILE"
+    else
+        as_root sh -c "echo '${key}=\"${val}\"' >> '$ENV_FILE'"
+    fi
 }
 
 case "$1" in
@@ -28,7 +56,7 @@ case "$1" in
         echo "=== Kiosk Service Status ==="
         systemctl status c10h-kiosk.service --no-pager | head -n 12
         echo ""
-        echo "=== Current Configuration ==="
+        echo "=== Current Configuration (/etc/c10h-kiosk.env) ==="
         cat "$ENV_FILE" 2>/dev/null
         echo ""
         if [ -f "$BL_PATH" ]; then
@@ -40,12 +68,8 @@ case "$1" in
             grep "KIOSK_URL=" "$ENV_FILE" 2>/dev/null || echo "http://127.0.0.1:5666"
         else
             echo "Setting KIOSK_URL to: $2"
-            if grep -q "KIOSK_URL=" "$ENV_FILE" 2>/dev/null; then
-                sed -i "s|KIOSK_URL=.*|KIOSK_URL=\"$2\"|g" "$ENV_FILE"
-            else
-                echo "KIOSK_URL=\"$2\"" >> "$ENV_FILE"
-            fi
-            systemctl restart c10h-kiosk.service
+            set_env_var "KIOSK_URL" "$2"
+            as_root systemctl restart c10h-kiosk.service
             echo "Applied and refreshed."
         fi
         ;;
@@ -57,7 +81,7 @@ case "$1" in
         else
             val="$2"
             if [[ "$val" =~ ^[0-7]$ ]]; then
-                echo "$val" > "$BL_PATH" 2>/dev/null || echo 123456 | sudo -S sh -c "echo $val > $BL_PATH"
+                echo "$val" > "$BL_PATH" 2>/dev/null || as_root sh -c "echo $val > $BL_PATH"
                 echo "Brightness set to $val."
             else
                 echo "Error: Brightness must be between 0 and 7."
@@ -65,24 +89,91 @@ case "$1" in
             fi
         fi
         ;;
+    keyboard)
+        if [ -z "$2" ]; then
+            grep "ENABLE_TOUCH_KEYBOARD=" "$ENV_FILE" 2>/dev/null || echo "ENABLE_TOUCH_KEYBOARD=1"
+        elif [ "$2" = "on" ] || [ "$2" = "1" ]; then
+            echo "Enabling virtual touch keyboard..."
+            set_env_var "ENABLE_TOUCH_KEYBOARD" "1"
+            as_root systemctl restart c10h-kiosk.service
+            echo "Applied and refreshed."
+        elif [ "$2" = "off" ] || [ "$2" = "0" ]; then
+            echo "Disabling virtual touch keyboard..."
+            set_env_var "ENABLE_TOUCH_KEYBOARD" "0"
+            as_root systemctl restart c10h-kiosk.service
+            echo "Applied and refreshed."
+        else
+            echo "Usage: c10h-kiosk-ctl keyboard [on|off]"
+            exit 1
+        fi
+        ;;
+    nav)
+        if [ -z "$2" ]; then
+            grep "ENABLE_BROWSER_NAV=" "$ENV_FILE" 2>/dev/null || echo "ENABLE_BROWSER_NAV=1"
+        elif [ "$2" = "on" ] || [ "$2" = "1" ]; then
+            echo "Enabling top browser navigation bar..."
+            set_env_var "ENABLE_BROWSER_NAV" "1"
+            as_root systemctl restart c10h-kiosk.service
+            echo "Applied and refreshed."
+        elif [ "$2" = "off" ] || [ "$2" = "0" ]; then
+            echo "Disabling top browser navigation bar..."
+            set_env_var "ENABLE_BROWSER_NAV" "0"
+            as_root systemctl restart c10h-kiosk.service
+            echo "Applied and refreshed."
+        else
+            echo "Usage: c10h-kiosk-ctl nav [on|off]"
+            exit 1
+        fi
+        ;;
+    scroll)
+        if [ -z "$2" ]; then
+            grep "ENABLE_TOUCH_SCROLL=" "$ENV_FILE" 2>/dev/null || echo "ENABLE_TOUCH_SCROLL=1"
+        elif [ "$2" = "on" ] || [ "$2" = "1" ]; then
+            echo "Enabling kinetic touch drag-to-scroll..."
+            set_env_var "ENABLE_TOUCH_SCROLL" "1"
+            as_root systemctl restart c10h-kiosk.service
+            echo "Applied and refreshed."
+        elif [ "$2" = "off" ] || [ "$2" = "0" ]; then
+            echo "Disabling kinetic touch drag-to-scroll..."
+            set_env_var "ENABLE_TOUCH_SCROLL" "0"
+            as_root systemctl restart c10h-kiosk.service
+            echo "Applied and refreshed."
+        else
+            echo "Usage: c10h-kiosk-ctl scroll [on|off]"
+            exit 1
+        fi
+        ;;
+    input-mode)
+        if [ -z "$2" ]; then
+            grep "DEFAULT_INPUT_MODE=" "$ENV_FILE" 2>/dev/null || echo "DEFAULT_INPUT_MODE=\"xiaohe\""
+        elif [ "$2" = "xiaohe" ] || [ "$2" = "quanpin" ]; then
+            echo "Setting default input mode to: $2"
+            set_env_var "DEFAULT_INPUT_MODE" "$2"
+            as_root systemctl restart c10h-kiosk.service
+            echo "Applied and refreshed."
+        else
+            echo "Usage: c10h-kiosk-ctl input-mode [xiaohe|quanpin]"
+            exit 1
+        fi
+        ;;
     start)
-        echo 123456 | sudo -S systemctl start c10h-kiosk.service
+        as_root systemctl start c10h-kiosk.service
         echo "Kiosk started."
         ;;
     stop)
-        echo 123456 | sudo -S systemctl stop c10h-kiosk.service
+        as_root systemctl stop c10h-kiosk.service
         echo "Kiosk stopped."
         ;;
     restart)
-        echo 123456 | sudo -S systemctl restart c10h-kiosk.service
+        as_root systemctl restart c10h-kiosk.service
         echo "Kiosk restarted."
         ;;
     enable)
-        echo 123456 | sudo -S systemctl enable c10h-kiosk.service
+        as_root systemctl enable c10h-kiosk.service
         echo "Kiosk auto-start enabled."
         ;;
     disable)
-        echo 123456 | sudo -S systemctl disable c10h-kiosk.service
+        as_root systemctl disable c10h-kiosk.service
         echo "Kiosk auto-start disabled."
         ;;
     *)

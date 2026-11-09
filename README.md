@@ -17,6 +17,8 @@ Linux 中出现的 `SKYWORTH E900V22C` 来自借用的设备树，不是实物�
 - **fnOS 普通画面恢复正常**：11 月 6 日记录及设备使用者后续确认，VPU/DSI 寄存器调整后画面完整、颜色正常、无可见折叠或抖动，并实现 1280×800 横屏控制台。见 [修复记录](docs/research/fnos-display-resolution-record-2026-11-06.md)。这是指定设备与配置的实际成果；不等于量化色彩准确度或长期可靠性认证。
 - **自动修复方案已有实现与部署记录**：提供独立 MMIO 工具、systemd 单元，以及后续加入面板驱动的写入路径。见 [实现导航](#技术实现与源码导航)与 [证据评价](evidence/README.md)。已采集当前模块/文件指纹及本次启动日志；精确源码构建对应、两条修复路径的独立贡献和跨重启成功率仍待验证。
 - **fnOS 板载 Amlogic W2 PCIe Wi-Fi (`1f35:0642`) 枚举与双频扫描验证**：通过独立 PCIe 控制器初始化驱动 [`c10h_pcie.c`](drivers/c10h-wifi/c10h_pcie.c) 与 ARM64 对齐修复补丁 [`w2-arm64-6.12-fixes.patch`](drivers/c10h-wifi/w2-arm64-6.12-fixes.patch)，在 `6.12.41-trim #219` 下实测完成冷启动 PCIe Gen2 x1 握手、固件握手、`wlan0` / `p2p0` / `ap0` 接口注册及 2.4GHz / 5GHz 双频热点扫描。见 [Wi-Fi 适配记录](docs/wifi.md)与 [实机取证摘录](evidence/fnos-wifi-bringup-2026-11-07.txt)。长期关联吞吐与 Armbian 侧适配仍待验证。
+- **触控屏驱动全面点亮与 1:1 硬件像素校准**：实机验证 Jadard JD9366TC TDDI (In-Cell) 芯片走 `/dev/i2c-0` (`0x68`)。通过厂商握手解锁、1:1 硬件像素映射（`Screen_X = 1279 - raw_y`, `Screen_Y = raw_x`）彻底消除边缘偏离，配合 140Hz 高频极速轮询与 uinput 绝对指针，实现亚毫米级精准点触与流畅跟手。详见 [触控驱动记录](docs/touchscreen.md)。
+- **fnOS Wayland Kiosk 副屏与交互套件（全模块可选）**：通过 Cage + Chromium 原生硬件加速呈现飞牛桌面。集成双模触控输入法（小鹤双拼 / 全拼）、手势拖拽滑动、浏览器顶部导航条与 GPU 性能优化（规避 `backdrop-filter` 达到 60 FPS 满帧）。导航条与虚拟键盘支持在图形化设置弹窗、命令行工具 `c10h-kiosk-ctl` 及 `/etc/c10h-kiosk.env` 中随时自由启停。详见 [Kiosk 副屏套件](docs/kiosk.md)。
 
 ## Armbian / fnOS 独立状态
 
@@ -36,7 +38,9 @@ Linux 中出现的 `SKYWORTH E900V22C` 来自借用的设备树，不是实物�
 | 开机修复 | 源码/服务可供适配，未作内屏实测 | 显示修复服务保持运行；控制台由 `fbcon=rotate:3` 旋转，旧旋转服务已移除 |
 | SD / eMMC 安装 | 未验证；内屏 overlay 禁用借用的 SD 节点 | 未验证；实验记录禁用 SD/eMMC |
 | 板载 Wi-Fi (`1f35:0642`) | 未验证 | **已枚举并完成 2.4G/5G 扫描**（`wlan0`/`p2p0`/`ap0`）；长期连接吞吐待测 |
-| 触摸、音频、蓝牙、摄像头、GPU 加速 | 均未完成实际功能验收 | 均未完成实际功能验收 |
+| 触控屏 (JD9366TC) | 待移植驱动 | **已全面验证**：1:1 像素映射精准点触、140Hz 轮询无延迟，注册绝对指针 |
+| GPU / Kiosk 仪表盘 | 待测试 | **已全面验证**：Wayland Cage + Chromium 硬件加速，可选虚拟键盘与导航栏 |
+| 音频、蓝牙、摄像头 | 均未完成实际功能验收 | 均未完成实际功能验收 |
 
 早期资料将部分显示实验归于 Armbian，与设备使用者后续明确确认冲突；保留原始材料，当前不据此宣称 Armbian 内屏已测。见 [冲突说明](docs/audit.md#材料冲突与处理)。
 
@@ -52,6 +56,7 @@ Linux 中出现的 `SKYWORTH E900V22C` 来自借用的设备树，不是实物�
 | 2026-11-04（研究记录日期） | 浏览器 framebuffer 滑杆、通道补偿、全白图和状态采样用于分离颜色与空间故障，尚未完成系统修复 | [滑杆方法](docs/research/browser-slider-method-2026-11-04.md) · [详细纪要](docs/research/fnos-lcd-experiment-log-2026-11-04.md) |
 | 2026-11-06（修复记录日期） | fnOS 寄存器调整后显示正常；形成 MMIO 工具、横屏和自启方案，驱动随后加入直接写入实现 | [修复记录](docs/research/fnos-display-resolution-record-2026-11-06.md) · [源码演变与验证边界](docs/audit.md#提交历史与日期口径) |
 | 2026-11-07（实测记录日期） | fnOS 下完成 S905L3A 原生 PCIe 控制器独立驱动与 Amlogic W2 ARM64 对齐修复，`wlan0` 双频扫描成功 | [Wi-Fi 记录](docs/wifi.md) · [取证摘录](evidence/fnos-wifi-bringup-2026-11-07.txt) |
+| 2026-11-09（实测记录日期） | fnOS 触控驱动逆向点亮、1:1 硬件像素校准与 140Hz 高频轮询；Wayland Kiosk 双模中文虚拟输入法、手势拖拽滑动与浏览器导航栏全面支持，所有功能支持模块化自由启停 | [触控文档](docs/touchscreen.md) · [Kiosk 文档](docs/kiosk.md) |
 
 ## 启动、构建与研究文档
 
@@ -76,6 +81,8 @@ Linux 中出现的 `SKYWORTH E900V22C` 来自借用的设备树，不是实物�
 | [MMIO 工具](tools/c10h-display-fix.c) · [修复服务](systemd/c10h-display-fix.service) · [旋转服务](systemd/c10h-fbcon-rotate.service) | 用户态寄存器写入与开机单元；有实现不代表当前设备已运行该版本 |
 | [显示探针](experiments/display/) · [取证脚本](scripts/) | DRM 几何图、Canvas/寄存器快照、硬件彩条与启动记录；部分工具会写硬件或切换图层 |
 | [安卓重启工具](tools/reboot-to-fnos/) | 安卓端一键重启到飞牛/Linux 应用及源码，通过 telecom_shell root 机制与 sys.powerctl 触发引导 |
+| [触控驱动](tools/c10h-touch/c10h-touch-daemon.py) · [触控服务](systemd/c10h-touch.service) | JD9366TC TDDI In-Cell I2C 厂商后门解锁、1:1 像素映射与 140Hz 极速轮询 uinput 绝对指针驱动 |
+| [Kiosk 套件](tools/c10h-kiosk/) · [虚拟键盘与导航扩展](tools/c10h-kiosk/c10h-touch-keyboard/) | Wayland Cage Kiosk 启动脚本、`c10h-kiosk-ctl` 快捷控制工具、小鹤双拼/全拼输入法、手势滑动与 GPU 性能调优 |
 
 寄存器值与命名核对集中于 [显示配置表](docs/display.md#寄存器配置与命名核对)。特别是 `0x1DF5` 在仓库头文件中定义为 `VPP_OSD1_BLD_H_SCOPE`，不能直接解释为“1919 深度输出 FIFO”。
 
