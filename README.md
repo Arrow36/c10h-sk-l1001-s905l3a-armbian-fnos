@@ -1,8 +1,10 @@
 # 天翼智屏 C10H / SK-L1001 Linux 适配记录
 
-创维 SK-L1001（中国电信天翼智屏 C10H，Amlogic S905L3A）的外置 Linux 启动、板级适配和显示研究。主要开发基线为 Armbian，同一台设备也运行了社区 ARM fnOS。
+创维 SK-L1001（中国电信天翼智屏 C10H，Amlogic S905L3A）的外置 Linux 启动、板级适配和显示研究。仓库涵盖社区 ARM fnOS 与 Armbian 两套独立系统方案：
+- **社区 ARM fnOS（飞牛私有云 / NAS 系统）**：提供 NAS 工作站、Wayland Cage Kiosk 仪表盘副屏与双模虚拟输入法。
+- **Armbian 26.11.0 Bookworm（Debian 12 桌面系统）**：提供完整 XFCE4 桌面、1280×800 正向横屏、JD9366TC 原生多点触控驱动、板载 W2 PCIe Wi-Fi 联网、Chromium 触控手势及 Onboard 屏幕键盘生态。**所有 Armbian 专有源码与配置完全独立归档于 [`armbian/`](armbian/README.md) 目录，不影响飞牛原有代码。**
 
-**fnOS 内屏已实测显示正常；Armbian 内屏尚未测试。** 项目仍属实验性移植，未完成整机外设、长期运行及完整恢复流程验收；仓库提供源码、配置示例与研究记录，没有完整预制系统镜像或一键安装方案。
+**fnOS 与 Armbian 内屏均已实测显示正常。** 项目仍属实验性移植，未完成整机外设、长期运行及完整恢复流程验收；仓库提供源码、配置示例与研究记录，没有完整预制系统镜像或一键安装方案。
 
 ## 设备与研究目标
 
@@ -12,6 +14,7 @@ Linux 中出现的 `SKYWORTH E900V22C` 来自借用的设备树，不是实物�
 
 ## 已验证的成果
 
+- **Armbian 桌面系统全面点亮与交互闭环**：在 Linux Kernel `6.12.114-ophub` 下，实测完成 10.1 寸 MIPI-DSI 内屏正向横屏显示（1280×800）、W2 PCIe 无线网卡自动连接 Wi-Fi、Jadard JD9366TC 原生多点触控（Multi-Touch Protocol B）、中文显示环境、Onboard 悬浮键盘及 Chromium 触屏手势平滑滚动。详见 [Armbian 专区说明](armbian/README.md)与 [深度探索技术总结报告](armbian/docs/c10h_armbian_exploration_report.md)。
 - **Armbian 外置启动与有线调试**：U 盘根文件系统、systemd 多用户启动、有线 SSH、HDMI 控制台，以及一次 DNS/HTTPS 访问结果。见 [启动证据摘录](evidence/verified-boot.txt)与 [网络记录](docs/network.md)。自动联网曾间歇失败，不能视为每次启动均可联网。
 - **fnOS 外置启动与内屏点亮**：`6.12.41-trim #219` 环境中，DSI 主机/面板绑定，禁用 HDMI 后内屏独占当前 CRTC。早期画面存在分区、重复与偏色，见 [完整实验及终端输出](docs/research/fnos-lcd-full-record-2026-11-04.md)。
 - **fnOS 普通画面恢复正常**：11 月 6 日记录及设备使用者后续确认，VPU/DSI 寄存器调整后画面完整、颜色正常、无可见折叠或抖动，并实现 1280×800 横屏控制台。见 [修复记录](docs/research/fnos-display-resolution-record-2026-11-06.md)。这是指定设备与配置的实际成果；不等于量化色彩准确度或长期可靠性认证。
@@ -24,23 +27,24 @@ Linux 中出现的 `SKYWORTH E900V22C` 来自借用的设备树，不是实物�
 
 “已验证”指已有记录中的指定设备与配置；“未测试/待验证”不等于硬件不受支持。详细证据、归属冲突和外设状态见 [硬件表](docs/hardware.md)与 [证据索引](evidence/README.md)。
 
-| 项目 | Armbian | 社区 ARM fnOS |
+| 项目 | Armbian 桌面系统 | 社区 ARM fnOS |
 | --- | --- | --- |
-| 记录中的系统 | Debian 13 Trixie；`6.12.114-ophub` | fnOS 1.1.20 / Debian 12；`6.12.41-trim #219` |
-| U 盘启动与根文件系统 | 已验证，`/dev/sda2` ext4 | 已记录成功，`/dev/sda2` Btrfs |
-| 引导与内置 eMMC | Android update 路径 → U-Boot 一次性脚本；测试 DTB 禁用 eMMC | 有同类启动与禁用 eMMC 的记录；实际配套脚本/DTB 不在仓库 |
-| Ethernet / SSH | 已验证；DHCP/DNS 有过间歇问题 | SSH、100 Mbps 全双工本轮已确认；长期联网未验收 |
-| fnOS Web 管理页 | 不适用 | 本轮首页 HTTP 200；未据此验收 NAS 工作负载 |
+| 记录中的系统 | Debian 12 Bookworm；`6.12.114-ophub` | fnOS 1.1.20 / Debian 12；`6.12.41-trim #219` |
+| U 盘启动与根文件系统 | **已验证**，`/dev/sda2` ext4 | 已记录成功，`/dev/sda2` Btrfs |
+| 引导与内置 eMMC | Android update 路径 → U-Boot 链式引导；保留内置 eMMC | 有同类启动与禁用 eMMC 的记录；实际配套脚本/DTB 不在仓库 |
+| Ethernet / SSH | **已验证**，100 Mbps 全双工网络与 SSH 调试 | SSH、100 Mbps 全双工本轮已确认；长期联网未验收 |
+| fnOS Web 管理页 | 不适用（专注标准 Linux XFCE4 桌面环境） | 本轮首页 HTTP 200；未据此验收 NAS 工作负载 |
 | HDMI 控制台 | 已确认 | 早期已记录；LCD 独占配置禁用 HDMI |
-| MIPI DSI / 背光 | **内屏尚未测试** | 已点亮，普通画面显示正常 |
-| 分辨率与方向 | 内屏尚未测试 | 原生 800×1280；横屏控制台 1280×800 |
-| 色彩、折叠与抖动 | 内屏尚未测试 | 实测颜色正常、无可见折叠或抖动 |
-| 开机修复 | 源码/服务可供适配，未作内屏实测 | 显示修复服务保持运行；控制台由 `fbcon=rotate:3` 旋转，旧旋转服务已移除 |
-| SD / eMMC 安装 | 未验证；内屏 overlay 禁用借用的 SD 节点 | 未验证；实验记录禁用 SD/eMMC |
-| 板载 Wi-Fi (`1f35:0642`) | 未验证 | **已枚举并完成 2.4G/5G 扫描**（`wlan0`/`p2p0`/`ap0`）；长期连接吞吐待测 |
-| 触控屏 (JD9366TC) | 待移植驱动 | **已全面验证**：1:1 像素映射精准点触、140Hz 轮询无延迟，注册绝对指针 |
-| GPU / Kiosk 仪表盘 | 待测试 | **已全面验证**：Wayland Cage + Chromium 硬件加速，可选虚拟键盘与导航栏 |
-| 音频、蓝牙、摄像头 | 均未完成实际功能验收 | 均未完成实际功能验收 |
+| MIPI DSI / 背光 | **已全面点亮**，背光恢复与自动使能 | 已点亮，普通画面显示正常 |
+| 分辨率与方向 | **1280×800 正向横屏**（X11 Rotate Left） | 原生 800×1280；横屏控制台 1280×800 |
+| 色彩、折叠与抖动 | **实测正常**，色彩鲜艳，无条纹无抖动 | 实测颜色正常、无可见折叠或抖动 |
+| 开机修复 | X11 KMS modesetting 原生支持，无需额外 MMIO 补丁 | 显示修复服务保持运行；控制台由 `fbcon=rotate:3` 旋转，旧旋转服务已移除 |
+| SD / eMMC 安装 | 未验证；保留原厂 Android 系统 | 未验证；实验记录禁用 SD/eMMC |
+| 板载 Wi-Fi (`1f35:0642`) | **已打通并联网**：PCIe 唤醒、`wlan0` 注册、NetworkManager 托盘支持与连网通过 | **已枚举并完成 2.4G/5G 扫描**（`wlan0`/`p2p0`/`ap0`）；长期连接吞吐待测 |
+| 触控屏 (JD9366TC) | **已全面验证**：Linux 原生 Multi-Touch Protocol B、8px 消抖、1:1 像素映射、140Hz 极速轮询 | **已全面验证**：1:1 像素映射精准点触、140Hz 轮询无延迟，注册绝对指针 |
+| 中文字体与虚拟键盘 | **已全面验证**：文泉驿微米黑/正黑，Onboard 悬浮键盘开机常驻 | 内置小鹤双拼/全拼 Web 虚拟输入法 |
+| 网页浏览器 (Chromium) | **已全面验证**：Chromium 156 硬件优化、触屏原生手势与平滑滚屏 | **已全面验证**：Wayland Cage + Chromium 硬件加速，可选虚拟键盘与导航栏 |
+| 音频、蓝牙、摄像头 | 待后续专项验证 | 均未完成实际功能验收 |
 
 早期资料将部分显示实验归于 Armbian，与设备使用者后续明确确认冲突；保留原始材料，当前不据此宣称 Armbian 内屏已测。见 [冲突说明](docs/audit.md#材料冲突与处理)。
 
@@ -57,6 +61,7 @@ Linux 中出现的 `SKYWORTH E900V22C` 来自借用的设备树，不是实物�
 | 2026-11-06（修复记录日期） | fnOS 寄存器调整后显示正常；形成 MMIO 工具、横屏和自启方案，驱动随后加入直接写入实现 | [修复记录](docs/research/fnos-display-resolution-record-2026-11-06.md) · [源码演变与验证边界](docs/audit.md#提交历史与日期口径) |
 | 2026-11-07（实测记录日期） | fnOS 下完成 S905L3A 原生 PCIe 控制器独立驱动与 Amlogic W2 ARM64 对齐修复，`wlan0` 双频扫描成功 | [Wi-Fi 记录](docs/wifi.md) · [取证摘录](evidence/fnos-wifi-bringup-2026-11-07.txt) |
 | 2026-11-09（实测记录日期） | fnOS 触控驱动逆向点亮、1:1 硬件像素校准与 140Hz 高频轮询；Wayland Kiosk 双模中文虚拟输入法、手势拖拽滑动与浏览器导航栏全面支持，所有功能支持模块化自由启停 | [触控文档](docs/touchscreen.md) · [Kiosk 文档](docs/kiosk.md) |
+| 2026-11-10 至 11-11（实测交付日期） | **Armbian 桌面系统全面打通**：内屏 1280×800 正向横屏、W2 PCIe Wi-Fi 成功联网、JD9366TC 原生多点触控与消抖、文泉驿中文字体补齐、Onboard 虚拟键盘及 Chromium 触屏优化，全部源码与配置独立归档于 `armbian/` 目录 | [Armbian 专区说明](armbian/README.md) · [总结报告](armbian/docs/c10h_armbian_exploration_report.md) |
 
 ## 启动、构建与研究文档
 
@@ -73,6 +78,7 @@ Linux 中出现的 `SKYWORTH E900V22C` 来自借用的设备树，不是实物�
 
 | 路径 | 用途及边界 |
 | --- | --- |
+| **[armbian/](armbian/)** | **Armbian 独立适配套件**：包含多点触控驱动、Systemd 单元、X11/Chromium 规则、Onboard 配置及一键部署脚本 |
 | [boot/](boot/) · [启动容器生成器](tools/make_boot_script.py) | 一次性 U-Boot 脚本与实验模板；UUID、文件系统和路径须与镜像一致，脚本不导入 `uEnv.txt` |
 | [eMMC DTB 工具](tools/disable_emmc.py) · [dts/](dts/) | 基线 eMMC 节点修改、面板/PWM/DSI overlay；Wi-Fi overlay 是失败/未验证实验 |
 | [面板驱动](drivers/c10h-display/panel-c10h-jd9366tc.c) · [初始化表](drivers/c10h-display/c10h-panel-init.h) | JD9366TC 上电、DCS 初始化、800×1280 模式，以及 `prepare()` 中的固定地址 MMIO 写入 |

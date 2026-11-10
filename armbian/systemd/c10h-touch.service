@@ -1,0 +1,14 @@
+[Unit]
+Description=C10H Touchscreen & Pointer Daemon
+After=systemd-modules-load.service
+Before=lightdm.service
+
+[Service]
+Type=simple
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 /usr/local/bin/c10h-touch-daemon.py
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

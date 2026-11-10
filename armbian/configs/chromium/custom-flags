@@ -1,0 +1,16 @@
+# Chromium flags for C10H Touchscreen & Hardware Platform
+CHROMIUM_FLAGS="$CHROMIUM_FLAGS --no-sandbox --test-type"
+
+# Native Touchscreen & Touch Gesture Scrolling Support
+CHROMIUM_FLAGS="$CHROMIUM_FLAGS --touch-events=enabled --enable-pinch --enable-smooth-scrolling"
+CHROMIUM_FLAGS="$CHROMIUM_FLAGS --enable-features=OverlayScrollbar"
+
+# Auto-bind touch device if detected via xinput
+if command -v xinput >/dev/null 2>&1 && [ -n "$DISPLAY" ]; then
+    TOUCH_ID=$(xinput list 2>/dev/null | grep -i "jadard-touchscreen" | sed -n 's/.*id=\([0-9]*\).*/\1/p' | head -n1)
+    if [ -n "$TOUCH_ID" ]; then
+        CHROMIUM_FLAGS="$CHROMIUM_FLAGS --touch-devices=$TOUCH_ID"
+    fi
+fi
+
+export CHROMIUM_FLAGS
